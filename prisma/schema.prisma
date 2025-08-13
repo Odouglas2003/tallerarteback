@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model maestro {
+  id_maestro    Int      @id @default(autoincrement())
+  nombre        String
+  apellido      String
+  dni           String?  @unique
+  telefono      String?
+  cant_talleres Int      @default(0)
+  talleres      taller[]
+}
+
+model alumno {
+  id_alumno      Int             @id @default(autoincrement())
+  nombre         String
+  apellido       String
+  dni            String?         @unique
+  direccion      String?
+  telefono_madre String?
+  telefono_padre String?
+  inscripciones  alumno_taller[]
+  comprobantes   comprobante[]
+}
+
+model taller {
+  id_taller    Int             @id @default(autoincrement())
+  id_maestro   Int
+  nombre       String
+  fecha_ini    DateTime
+  fecha_fin    DateTime?
+  horario      String?
+  dias         String?
+  auxiliar     String?
+  cupo         Int
+  maestro      maestro         @relation(fields: [id_maestro], references: [id_maestro])
+  alumnos      alumno_taller[]
+  comprobantes comprobante[]
+
+  @@index([id_maestro])
+}
+
+model alumno_taller {
+  id                Int      @id @default(autoincrement())
+  id_alumno         Int
+  id_taller         Int
+  fecha_inscripcion DateTime @default(now())
+  horas_asignadas   Int      @default(0)
+
+  alumno alumno @relation(fields: [id_alumno], references: [id_alumno])
+  taller taller @relation(fields: [id_taller], references: [id_taller])
+
+  @@unique([id_alumno, id_taller])
+}
+
+model comprobante {
+  id_comprobante Int      @id @default(autoincrement())
+  id_alumno      Int
+  id_taller      Int?
+  fecha_pago     DateTime
+  monto          Decimal
+  estado         String   @default("pagado")
+
+  alumno alumno  @relation(fields: [id_alumno], references: [id_alumno])
+  taller taller? @relation(fields: [id_taller], references: [id_taller])
+
+  @@index([id_alumno])
+  @@index([id_taller])
+}
