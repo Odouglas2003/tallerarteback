@@ -7,69 +7,108 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum rol {
+  ADMIN
+  DOCENTE
+  ALUMNO
+
+  @@map("rol") // usa el enum existente de Postgres
+}
+
 model maestro {
-  id_maestro    Int      @id @default(autoincrement())
+  id_maestro    Int     @id @default(autoincrement())
   nombre        String
   apellido      String
-  dni           String?  @unique
+  dni           String? @unique
   telefono      String?
-  cant_talleres Int      @default(0)
-  talleres      taller[]
+  cant_talleres Int     @default(0)
+
+  talleres taller[]
+  usuarios usuarios[]
+
+  @@map("maestro")
 }
 
 model alumno {
-  id_alumno      Int             @id @default(autoincrement())
+  id_alumno      Int     @id @default(autoincrement())
   nombre         String
   apellido       String
-  dni            String?         @unique
+  dni            String? @unique
   direccion      String?
   telefono_madre String?
   telefono_padre String?
-  inscripciones  alumno_taller[]
-  comprobantes   comprobante[]
+
+  inscripciones alumno_taller[]
+  comprobantes  comprobante[]
+  usuarios      usuarios[]
+
+  @@map("alumno")
 }
 
 model taller {
-  id_taller    Int             @id @default(autoincrement())
-  id_maestro   Int
-  nombre       String
-  fecha_ini    DateTime
-  fecha_fin    DateTime?
-  horario      String?
-  dias         String?
-  auxiliar     String?
-  cupo         Int
+  id_taller  Int       @id @default(autoincrement())
+  id_maestro Int
+  nombre     String
+  fecha_ini  DateTime  @db.Date
+  fecha_fin  DateTime? @db.Date
+  horario    String?
+  dias       String?
+  auxiliar   String?
+  cupo       Int
+
   maestro      maestro         @relation(fields: [id_maestro], references: [id_maestro])
   alumnos      alumno_taller[]
   comprobantes comprobante[]
 
   @@index([id_maestro])
+  @@map("taller")
 }
 
 model alumno_taller {
   id                Int      @id @default(autoincrement())
   id_alumno         Int
   id_taller         Int
-  fecha_inscripcion DateTime @default(now())
+  fecha_inscripcion DateTime @default(now()) @db.Date
   horas_asignadas   Int      @default(0)
 
-  alumno alumno @relation(fields: [id_alumno], references: [id_alumno])
-  taller taller @relation(fields: [id_taller], references: [id_taller])
+  alumno alumno @relation(fields: [id_alumno], references: [id_alumno], onDelete: Cascade, onUpdate: Cascade)
+  taller taller @relation(fields: [id_taller], references: [id_taller], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([id_alumno, id_taller])
+  @@map("alumno_taller")
 }
 
 model comprobante {
   id_comprobante Int      @id @default(autoincrement())
   id_alumno      Int
   id_taller      Int?
-  fecha_pago     DateTime
-  monto          Decimal
+  fecha_pago     DateTime @db.Date
+  monto          Decimal  @db.Decimal(12, 2)
   estado         String   @default("pagado")
 
-  alumno alumno  @relation(fields: [id_alumno], references: [id_alumno])
-  taller taller? @relation(fields: [id_taller], references: [id_taller])
+  alumno alumno  @relation(fields: [id_alumno], references: [id_alumno], onDelete: Cascade, onUpdate: Cascade)
+  taller taller? @relation(fields: [id_taller], references: [id_taller], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([id_alumno])
   @@index([id_taller])
+  @@map("comprobante")
+}
+
+model usuarios {
+  id_user       Int    @id @default(autoincrement())
+  username      String @unique
+  nombre        String
+  apellido      String
+  password_hash String @db.VarChar(72)
+  rol           rol    @default(ALUMNO)
+
+  maestro_id Int?
+  alumno_id  Int?
+
+  maestro maestro? @relation(fields: [maestro_id], references: [id_maestro], onDelete: SetNull, onUpdate: Cascade)
+  alumno  alumno?  @relation(fields: [alumno_id], references: [id_alumno], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([maestro_id])
+  @@index([alumno_id])
+  @@map("usuarios")
 }
