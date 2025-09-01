@@ -93,22 +93,35 @@ model comprobante {
   @@index([id_taller])
   @@map("comprobante")
 }
+enum UsuarioStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+
+  @@map("usuario_status")
+}
 
 model usuarios {
-  id_user       Int    @id @default(autoincrement())
-  username      String @unique
+  id_user       Int            @id @default(autoincrement())
+  username      String         @unique
   nombre        String
   apellido      String
-  password_hash String @db.VarChar(72)
-  rol           rol    @default(ALUMNO)
+  password_hash String         @db.VarChar(72)
+  rol           rol            @default(ALUMNO)
 
   maestro_id Int?
   alumno_id  Int?
 
+  status                 UsuarioStatus @default(PENDING)
+  approval_token         String?
+  approval_token_expires DateTime?
+  created_at             DateTime      @default(now())
+  updated_at             DateTime      @updatedAt
+
   maestro maestro? @relation(fields: [maestro_id], references: [id_maestro], onDelete: SetNull, onUpdate: Cascade)
   alumno  alumno?  @relation(fields: [alumno_id], references: [id_alumno], onDelete: SetNull, onUpdate: Cascade)
 
+  @@map("usuarios")
   @@index([maestro_id])
   @@index([alumno_id])
-  @@map("usuarios")
 }
