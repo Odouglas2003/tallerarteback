@@ -40,9 +40,12 @@ model alumno {
 
   inscripciones alumno_taller[]
   comprobantes  comprobante[]
-  usuarios      usuarios[]
 
-  @@map("alumno")
+  // 👇 AGREGAR ESTA LÍNEA
+  pagos    pago[] // relación inversa a pago.alumno
+  usuarios usuarios[]
+
+  @@map("alumno") // si ya lo tenías, mantenelo
 }
 
 model taller {
@@ -93,6 +96,7 @@ model comprobante {
   @@index([id_taller])
   @@map("comprobante")
 }
+
 enum UsuarioStatus {
   PENDING
   ACTIVE
@@ -102,12 +106,12 @@ enum UsuarioStatus {
 }
 
 model usuarios {
-  id_user       Int            @id @default(autoincrement())
-  username      String         @unique
+  id_user       Int    @id @default(autoincrement())
+  username      String @unique
   nombre        String
   apellido      String
-  password_hash String         @db.VarChar(72)
-  rol           rol            @default(ALUMNO)
+  password_hash String @db.VarChar(72)
+  rol           rol    @default(ALUMNO)
 
   maestro_id Int?
   alumno_id  Int?
@@ -121,7 +125,33 @@ model usuarios {
   maestro maestro? @relation(fields: [maestro_id], references: [id_maestro], onDelete: SetNull, onUpdate: Cascade)
   alumno  alumno?  @relation(fields: [alumno_id], references: [id_alumno], onDelete: SetNull, onUpdate: Cascade)
 
-  @@map("usuarios")
   @@index([maestro_id])
   @@index([alumno_id])
+  @@map("usuarios")
+}
+
+model pago {
+  id_pago   Int      @id @default(autoincrement())
+  nombre    String
+  importe   Decimal  @db.Decimal(12, 2) // 💰 mejor precisión que Float
+  tipo      String // "mercadopago" | "comprobante" (podemos volverlo enum luego)
+  fecha     DateTime @default(now())
+  archivo   String? // ruta/key del archivo (comprobante escaneado)
+  id_alumno Int
+
+  alumno alumno @relation(fields: [id_alumno], references: [id_alumno], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([id_alumno])
+  @@map("pago") // descomentar si la tabla física se llama exactamente "pago"
+}
+
+model event {
+  id_evento    Int      @id @default(autoincrement())
+  titulo       String
+  descripcion  String?
+  fecha_inicio DateTime
+  fecha_fin    DateTime
+  emoji        String
+
+  @@map("event") // descomentar si la tabla física se llama "event"
 }
